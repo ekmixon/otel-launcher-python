@@ -91,12 +91,7 @@ def _common_configuration(
         # method of setting configuration.
         provider_setter(provider_class())
 
-    if insecure:
-        credentials = None
-    else:
-        credentials = ssl_channel_credentials()
-
-    return credentials
+    return None if insecure else ssl_channel_credentials()
 
 
 def configure_opentelemetry(
@@ -183,10 +178,8 @@ def configure_opentelemetry(
 
     if log_level not in log_levels.keys():
 
-        message = (
-            "Invalid configuration: invalid log_level value."
-            "It must be one of {}.".format(", ".join(log_levels.keys()))
-        )
+        message = f'Invalid configuration: invalid log_level value.It must be one of {", ".join(log_levels.keys())}.'
+
         _logger.error(message)
         raise InvalidConfigurationError(message)
 
@@ -210,23 +203,18 @@ def configure_opentelemetry(
         _logger.error(message)
         raise InvalidConfigurationError(message)
 
-    if access_token is None:
-        if (
-            span_exporter_endpoint
-            == _DEFAULT_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
-        ):
-            message = (
-                "Invalid configuration: token missing. "
-                "Must be set to send data to {}. "
-                "Set environment variable LS_ACCESS_TOKEN"
-            ).format(_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT)
-            if not _auto_instrumented:
-                message += (
-                    " or call configure_opentelemetry "
-                    "with access_token defined"
-                )
-            _logger.error(message)
-            raise InvalidConfigurationError(message)
+    if access_token is None and (
+        span_exporter_endpoint == _DEFAULT_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+    ):
+        message = f"Invalid configuration: token missing. Must be set to send data to {_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT}. Set environment variable LS_ACCESS_TOKEN"
+
+        if not _auto_instrumented:
+            message += (
+                " or call configure_opentelemetry "
+                "with access_token defined"
+            )
+        _logger.error(message)
+        raise InvalidConfigurationError(message)
 
     if access_token is not None and not _validate_token(access_token):
         message = (
@@ -257,10 +245,9 @@ def configure_opentelemetry(
 
     set_global_textmap(CompositePropagator(propagator_instances))
 
-    headers = None
-
-    if access_token != "":
-        headers = (("lightstep-access-token", access_token),)
+    headers = (
+        (("lightstep-access-token", access_token),) if access_token else None
+    )
 
     _logger.debug("configuring tracing")
 
@@ -291,12 +278,10 @@ def configure_opentelemetry(
             "in both cases."
         )
         try:
-            hostname = gethostname()
-            if not hostname:
-                _logger.warning("Hostname is empty, %s", no_hostname_message)
-            else:
+            if hostname := gethostname():
                 resource_attributes[_ATTRIBUTE_HOST_NAME] = hostname
-        # pylint: disable=broad-except
+            else:
+                _logger.warning("Hostname is empty, %s", no_hostname_message)
         except Exception:
             _logger.exception(
                 "Unable to get hostname, %s", no_hostname_message
@@ -347,7 +332,7 @@ def configure_opentelemetry(
         "span_exporter_insecure": span_exporter_insecure,
     }
 
-    logged_attributes.update(resource_attributes)
+    logged_attributes |= resource_attributes
 
     for key, value in logged_attributes.items():
         _logger.debug("%s: %s", key, value)
@@ -359,7 +344,7 @@ def configure_opentelemetry(
 
 
 def _validate_token(token: str):
-    return len(token) in [32, 84, 104]
+    return len(token) in {32, 84, 104}
 
 
 def _validate_service_name(service_name: Optional[str]):

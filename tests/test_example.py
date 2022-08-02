@@ -35,26 +35,20 @@ def setup_teardown():
     identifier = f"{randint(0, 999):03}"
 
     server_process = Popen(
-        split(
-            ".nox/example-3-9/bin/python3 examples/server.py {}".format(
-                identifier
-            )
-        ),
+        split(f".nox/example-3-9/bin/python3 examples/server.py {identifier}"),
         start_new_session=True,
         env=environment,
     )
+
 
     sleep(5)
 
     client_process = Popen(
-        split(
-            ".nox/example-3-9/bin/python3 examples/client.py {}".format(
-                identifier
-            )
-        ),
+        split(f".nox/example-3-9/bin/python3 examples/client.py {identifier}"),
         start_new_session=True,
         env=environment,
     )
+
 
     sleep(5)
 

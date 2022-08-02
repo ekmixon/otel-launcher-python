@@ -271,9 +271,7 @@ class TestConfiguration(TestCase):
             carrier = {}
             prop.inject(carrier, context=ctx)
             self.assertIn(
-                "00-{}".format(
-                    format(span.get_span_context().trace_id, "032x")
-                ),
+                f'00-{format(span.get_span_context().trace_id, "032x")}',
                 carrier.get("traceparent"),
             )
 
@@ -296,9 +294,7 @@ class TestConfiguration(TestCase):
             )
             self.assertEqual(carrier.get("baggage"), "abc=def")
             self.assertIn(
-                "00-{}".format(
-                    format(span.get_span_context().trace_id, "032x")
-                ),
+                f'00-{format(span.get_span_context().trace_id, "032x")}',
                 carrier.get("traceparent"),
             )
 
@@ -339,10 +335,9 @@ class TestConfiguration(TestCase):
         configure_opentelemetry(
             service_name="service_name",
             access_token="a" * 104,
-            resource_attributes="{}=other_hostname".format(
-                _ATTRIBUTE_HOST_NAME
-            ),
+            resource_attributes=f"{_ATTRIBUTE_HOST_NAME}=other_hostname",
         )
+
 
         mock_resource.assert_called_with(
             {
